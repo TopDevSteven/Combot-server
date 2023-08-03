@@ -45,7 +45,7 @@ async def chat(reqeust: Request):
     # if query == "clamping heads":
     #     return {"message": "sfdsfsfds"}
     query = body['query']
-    additional_query = """ Select top 20. Output only SQLQuery and SQLResult not Answer.
+    additional_query = """  Select top unique 20. Output only SQLQuery and SQLResult not Answer.
 """
 
 
