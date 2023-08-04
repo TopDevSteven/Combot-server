@@ -19,7 +19,7 @@ dburi = os.path.join('sqlite:///' + current_path,
                      "db", "product.db")
 db = SQLDatabase.from_uri(dburi)
  
-db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True,return_intermediate_steps=True)
+db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True,return_intermediate_steps=True, return_direct = True)
 
 from langchain.chains import SQLDatabaseSequentialChain
 db_chain_multi = SQLDatabaseSequentialChain.from_llm(llm, db, verbose=True,return_intermediate_steps=True)
@@ -45,7 +45,7 @@ async def chat(reqeust: Request):
     # if query == "clamping heads":
     #     return {"message": "sfdsfsfds"}
     query = body['query']
-    additional_query = """  Select top unique 20. Output only SQLQuery and SQLResult not Answer.
+    additional_query = """ Coulmn `company_name`, `product_name`, `dmf_no`, `dmf_status`, `dmf_country` should be selected. SQLQuery should contain "Like %{query}%". No limit output all. Output only SQLQuery and SQLResult , don't make Answer.
 """
 
 
@@ -60,22 +60,28 @@ async def chat(reqeust: Request):
     # print(query)
     res = db_chain(query)
     steps = res['intermediate_steps']
-    text = steps[0]['input']
+    # text = steps[0]['input']
 
-    summary = res['result']
-    ########### Get Headers ###################
-    split_text = text.split("SELECT")[1].split("FROM")[0].strip()
-    keylist = list(split_text.split(","))
-    # Split the header names based on commas and remove any surrounding quotes or spaces
-    header_names = [name.strip('\"') for name in split_text.split(",")]
-    ########### Get Values #####################
-    result_match = re.search(r'SQLResult: (.+)', text)
-    if result_match:
-        sql_result = result_match.group(1)
-    array_sql_result = ast.literal_eval(sql_result)
+    text = steps[2]['sql_cmd']
+    print(res['result'])
+    array_sql_result = ast.literal_eval(res['result'])
     print("----------------")
-    print(array_sql_result)
+    keylist = list(text.split("SELECT")[1].split("FROM")[0].strip().split(", "))
+    # print(res['result'])
     print("----------------")
+    ########## Get Headers ###################
+    # split_text = text.split("SELECT")[1].split("FROM")[0].strip()
+    # keylist = list(split_text.split(","))
+    # # Split the header names based on commas and remove any surrounding quotes or spaces
+    # header_names = [name.strip('\"') for name in split_text.split(",")]
+    # ########### Get Values #####################
+    # result_match = re.search(r'SQLResult: (.+)', text)
+    # if result_match:
+    #     sql_result = result_match.group(1)
+    # array_sql_result = ast.literal_eval(sql_result)
+    # print("----------------")
+    # print(array_sql_result)
+    # print("----------------")
 
 
 #     json_data = json.loads(res["result"])
@@ -87,22 +93,3 @@ async def chat(reqeust: Request):
     # print("----------------")
     # print(key_array)
     return {"message": "success", "row": array_sql_result, "column": keylist}
-
-    
-    # if res['result'] == "Ooops":
-    #     print("------")
-    #     messages = [ {"role": "system", "content": 
-    #                 "You are a intelligent assistant."} ]
-    #     while True:
-    #         message = body['query'] + additional_query2
-    #         if message:
-    #             messages.append(
-    #                 {"role": "user", "content": message},
-    #             )
-    #             chat = openai.ChatCompletion.create(
-    #                 model="gpt-3.5-turbo", messages=messages
-    #             )
-    #         reply = chat.choices[0].message.content
-    #         return {"message": reply}
-    # else:
-    #     return {"message": res['result']}
